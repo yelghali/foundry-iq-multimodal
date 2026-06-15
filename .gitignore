@@ -1,0 +1,9 @@
+bin/
+obj/
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.outputs.json
+terraform-plan.txt
+src/FoundryIqMultimodal/sample-data/
+.vscode/mcp.json

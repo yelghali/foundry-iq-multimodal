@@ -1,0 +1,189 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "az-device-login",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"\"C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.cmd\"",
+				"login",
+				"--use-device-code",
+				"--tenant",
+				"5dc82be3-90ab-4f72-a0f2-b2557ba694e3"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "az-device-login-cmd",
+			"type": "shell",
+			"command": "cmd.exe /d /c \"\"C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.cmd\" login --use-device-code --tenant 5dc82be3-90ab-4f72-a0f2-b2557ba694e3\"",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "az-account-show",
+			"type": "shell",
+			"command": "& 'C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.cmd' account show -o json",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "terraform-init",
+			"type": "shell",
+			"command": "${workspaceFolder}\\scripts\\terraform.cmd -chdir=infra init",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "terraform-validate",
+			"type": "shell",
+			"command": "${workspaceFolder}\\scripts\\terraform.cmd -chdir=infra validate",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "terraform-apply-lab",
+			"type": "shell",
+			"command": "${workspaceFolder}\\scripts\\terraform.cmd -chdir=infra apply -var subscription_id=292e62e6-54a8-4c6a-b996-0c83f8cc29d0",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-lab",
+			"type": "shell",
+			"command": "${workspaceFolder}\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "terraform-apply-remaining-clean",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\terraform.cmd",
+			"args": [
+				"-chdir=C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\infra",
+				"apply",
+				"-auto-approve",
+				"-var",
+				"subscription_id=292e62e6-54a8-4c6a-b996-0c83f8cc29d0"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "terraform-apply-search-eastus",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\terraform.cmd",
+			"args": [
+				"-chdir=C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\infra",
+				"apply",
+				"-auto-approve",
+				"-var",
+				"subscription_id=292e62e6-54a8-4c6a-b996-0c83f8cc29d0"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab-fixed",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab-schema-fix",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab-skill-fix",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "terraform-apply-ai-services-eastus",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\terraform.cmd",
+			"args": [
+				"-chdir=C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\infra",
+				"apply",
+				"-auto-approve",
+				"-var",
+				"subscription_id=292e62e6-54a8-4c6a-b996-0c83f8cc29d0"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab-ocr-region-fix",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "terraform-apply-keyless-ocr",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\terraform.cmd",
+			"args": [
+				"-chdir=C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\infra",
+				"apply",
+				"-auto-approve",
+				"-var",
+				"subscription_id=292e62e6-54a8-4c6a-b996-0c83f8cc29d0"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab-keyless-ocr",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab-genai-uri-fix",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-multimodal-lab-mi-openai",
+			"type": "shell",
+			"command": "C:\\Users\\yaelghal\\Downloads\\localDev\\foundry-iq-multimodal\\scripts\\run-lab.cmd",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
