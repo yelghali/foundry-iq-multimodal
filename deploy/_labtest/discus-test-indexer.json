@@ -1,0 +1,21 @@
+{
+  "name": "discus-test-indexer",
+  "dataSourceName": "enterprise-multimodal-blob",
+  "skillsetName": "discus-test-skillset",
+  "targetIndexName": "discus-test-index",
+  "parameters": {
+    "batchSize": null,
+    "maxFailedItems": null,
+    "maxFailedItemsPerBatch": null,
+    "configuration": {
+      "dataToExtract": "contentAndMetadata",
+      "parsingMode": "default",
+      "imageAction": "generateNormalizedImages"
+    }
+  },
+  "fieldMappings": [
+    { "sourceFieldName": "metadata_storage_name", "targetFieldName": "metadata_storage_name" },
+    { "sourceFieldName": "metadata_storage_path", "targetFieldName": "metadata_storage_path" }
+  ],
+  "outputFieldMappings": []
+}

@@ -1,0 +1,28 @@
+{
+  "name": "idxr-discus",
+  "dataSourceName": "ds-discus",
+  "skillsetName": "skl-discus",
+  "targetIndexName": "idx-discus",
+  "schedule": {
+    "interval": "PT1H"
+  },
+  "parameters": {
+    "batchSize": null,
+    "maxFailedItems": null,
+    "maxFailedItemsPerBatch": null,
+    "configuration": {
+      "dataToExtract": "contentAndMetadata",
+      "parsingMode": "default",
+      "imageAction": "generateNormalizedImages",
+      "indexedFileNameExtensions": ".pdf,.pptx,.docx,.png,.jpeg,.jpg"
+    }
+  },
+  "fieldMappings": [
+    { "sourceFieldName": "metadata_storage_name", "targetFieldName": "metadata_storage_name" },
+    { "sourceFieldName": "metadata_storage_path", "targetFieldName": "metadata_storage_path" },
+    { "sourceFieldName": "metadata_storage_last_modified", "targetFieldName": "metadata_storage_last_modified" },
+    { "sourceFieldName": "metadata_content_type", "targetFieldName": "metadata_content_type" },
+    { "sourceFieldName": "metadata_sharepoint_fullurl", "targetFieldName": "metadata_sharepoint_fullurl" }
+  ],
+  "outputFieldMappings": []
+}

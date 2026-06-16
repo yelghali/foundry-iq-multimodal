@@ -1,0 +1,130 @@
+{
+  "name": "skl-discus",
+  "description": "OCR + image verbalization + merge + chunk + embeddings",
+  "skills": [
+    {
+      "@odata.type": "#Microsoft.Skills.Vision.OcrSkill",
+      "name": "ocr-skill",
+      "context": "/document/normalized_images/*",
+      "lineEnding": "Space",
+      "defaultLanguageCode": "en",
+      "detectOrientation": true,
+      "inputs": [
+        { "name": "image", "source": "/document/normalized_images/*" }
+      ],
+      "outputs": [
+        { "name": "text", "targetName": "text" }
+      ]
+    },
+    {
+      "@odata.type": "#Microsoft.Skills.Custom.ChatCompletionSkill",
+      "name": "image-description-skill",
+      "description": "Describe images for enterprise search and RAG.",
+      "context": "/document/normalized_images/*",
+      "uri": "https://aif-companion-nprd.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-01",
+      "inputs": [
+        { "name": "image", "source": "/document/normalized_images/*/data" },
+        { "name": "imageDetail", "source": "='high'" },
+        { "name": "systemMessage", "source": "='You describe images for enterprise search and retrieval augmented generation. Be factual. Do not invent missing information.'" },
+        { "name": "userMessage", "source": "='Describe this image for search. Include visible OCR text, people, roles, relationships, dates, deadlines, actions, owners, process steps, chart meaning, and diagram meaning. If the image is an org chart, describe reporting relationships. If something is unknown, omit it.'" }
+      ],
+      "outputs": [
+        { "name": "response", "targetName": "imageDescription" }
+      ],
+      "commonModelParameters": {
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "maxTokens": 350,
+        "temperature": 0.2
+      },
+      "responseFormat": { "type": "text" }
+    },
+    {
+      "@odata.type": "#Microsoft.Skills.Text.MergeSkill",
+      "name": "merge-skill",
+      "context": "/document",
+      "insertPreTag": " ",
+      "insertPostTag": " ",
+      "inputs": [
+        { "name": "text", "source": "/document/content" },
+        { "name": "itemsToInsert", "source": "/document/normalized_images/*/text" },
+        { "name": "offsets", "source": "/document/normalized_images/*/contentOffset" }
+      ],
+      "outputs": [
+        { "name": "mergedText", "targetName": "merged_ocr_text" }
+      ]
+    },
+    {
+      "@odata.type": "#Microsoft.Skills.Text.MergeSkill",
+      "name": "merge-image-descriptions",
+      "context": "/document",
+      "insertPreTag": "\n[GenAI image description] ",
+      "insertPostTag": "\n",
+      "inputs": [
+        { "name": "text", "source": "/document/merged_ocr_text" },
+        { "name": "itemsToInsert", "source": "/document/normalized_images/*/imageDescription" },
+        { "name": "offsets", "source": "/document/normalized_images/*/contentOffset" }
+      ],
+      "outputs": [
+        { "name": "mergedText", "targetName": "merged_all" }
+      ]
+    },
+    {
+      "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
+      "name": "split-skill",
+      "description": "Chunk the merged OCR + image-description text so embeddings and projections have /document/pages/* to consume.",
+      "context": "/document",
+      "defaultLanguageCode": "en",
+      "textSplitMode": "pages",
+      "maximumPageLength": 2000,
+      "pageOverlapLength": 200,
+      "inputs": [
+        { "name": "text", "source": "/document/merged_all" }
+      ],
+      "outputs": [
+        { "name": "textItems", "targetName": "pages" }
+      ]
+    },
+    {
+      "@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
+      "name": "text-embedding-skill",
+      "context": "/document/pages/*",
+      "resourceUri": "https://aif-companion-nprd.openai.azure.com",
+      "deploymentId": "text-embedding-3-large",
+      "dimensions": 3072,
+      "modelName": "text-embedding-3-large",
+      "inputs": [
+        { "name": "text", "source": "/document/pages/*" }
+      ],
+      "outputs": [
+        { "name": "embedding", "targetName": "contentVector" }
+      ]
+    }
+  ],
+  "cognitiveServices": {
+    "@odata.type": "#Microsoft.Azure.Search.AIServicesByIdentity",
+    "description": "Configuration to Azure Foundry.",
+    "subdomainUrl": "https://aif-companion-nprd.services.ai.azure.com"
+  },
+  "indexProjections": {
+    "selectors": [
+      {
+        "targetIndexName": "idx-discus",
+        "parentKeyFieldName": "text_parent_id",
+        "sourceContext": "/document/pages/*",
+        "mappings": [
+          { "name": "content", "source": "/document/pages/*" },
+          { "name": "text_vector", "source": "/document/pages/*/contentVector" },
+          { "name": "metadata_storage_name", "source": "/document/metadata_storage_name" },
+          { "name": "metadata_storage_path", "source": "/document/metadata_storage_path" },
+          { "name": "metadata_sharepoint_fullurl", "source": "/document/metadata_sharepoint_fullurl" },
+          { "name": "metadata_storage_last_modified", "source": "/document/metadata_storage_last_modified" },
+          { "name": "metadata_content_type", "source": "/document/metadata_content_type" },
+          { "name": "acl_user_ids", "source": "/document/user_ids" },
+          { "name": "acl_group_ids", "source": "/document/group_ids" }
+        ]
+      }
+    ],
+    "parameters": { "projectionMode": "skipIndexingParentDocuments" }
+  }
+}
