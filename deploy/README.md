@@ -4,6 +4,15 @@ These files patch the **live** Azure AI Search objects on `srch-companion-shared
 They are not part of the .NET lab — the lab (`src/FoundryIqMultimodal`) uses a different,
 already-working parent-document pattern.
 
+## Files
+
+| File | Azure object | Change |
+| --- | --- | --- |
+| `idx-discus.index.json` | index `idx-discus` | unchanged (full schema, for reference / idempotent deploy) |
+| `skl-discus.skillset.json` | skillset `skl-discus` | added `split-skill`; embedding input fixed to `/document/pages/*` |
+| `idxr-discus.indexer.json` | indexer `idxr-discus` | `outputFieldMappings` cleared to `[]` |
+| `deploy.ps1` | — | keyless (AAD) create-or-update of all three, then reset + run |
+
 ## What was broken
 
 Your `skl-discus` skillset declared an embedding skill and index projections that read

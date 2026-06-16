@@ -1,0 +1,77 @@
+{
+  "name": "idx-discus",
+  "fields": [
+    { "name": "id", "type": "Edm.String", "searchable": true, "filterable": false, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": true, "analyzer": "keyword", "synonymMaps": [] },
+    { "name": "content", "type": "Edm.String", "searchable": true, "filterable": false, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "analyzer": "fr.microsoft", "synonymMaps": [] },
+    { "name": "text_vector", "type": "Collection(Edm.Single)", "searchable": true, "filterable": false, "retrievable": true, "stored": true, "sortable": false, "facetable": false, "key": false, "dimensions": 3072, "vectorSearchProfile": "idx-discus-vector-profile", "synonymMaps": [] },
+    { "name": "text_parent_id", "type": "Edm.String", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "metadata_storage_path", "type": "Edm.String", "searchable": false, "filterable": true, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "metadata_storage_name", "type": "Edm.String", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "metadata_storage_last_modified", "type": "Edm.DateTimeOffset", "searchable": false, "filterable": true, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "metadata_sharepoint_fullurl", "type": "Edm.String", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "metadata_content_type", "type": "Edm.String", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "chunk_id", "type": "Edm.String", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": true, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "acl_user_ids", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": false, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "acl_group_ids", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": false, "facetable": true, "key": false, "synonymMaps": [] },
+    { "name": "merged_content", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": false, "facetable": true, "key": false, "analyzer": "standard.lucene", "synonymMaps": [] },
+    { "name": "ocrText", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": false, "facetable": true, "key": false, "analyzer": "standard.lucene", "synonymMaps": [] },
+    { "name": "ocrLayoutText", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": false, "facetable": true, "key": false, "analyzer": "standard.lucene", "synonymMaps": [] },
+    { "name": "imageDescription", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "retrievable": true, "stored": true, "sortable": false, "facetable": true, "key": false, "analyzer": "standard.lucene", "synonymMaps": [] }
+  ],
+  "scoringProfiles": [],
+  "suggesters": [],
+  "analyzers": [],
+  "normalizers": [],
+  "tokenizers": [],
+  "tokenFilters": [],
+  "charFilters": [],
+  "similarity": { "@odata.type": "#Microsoft.Azure.Search.BM25Similarity" },
+  "semantic": {
+    "defaultConfiguration": "sc-discus",
+    "configurations": [
+      {
+        "name": "sc-discus",
+        "flightingOptIn": false,
+        "rankingOrder": "BoostedRerankerScore",
+        "prioritizedFields": {
+          "prioritizedContentFields": [
+            { "fieldName": "content" }
+          ],
+          "prioritizedKeywordsFields": [
+            { "fieldName": "content" },
+            { "fieldName": "metadata_sharepoint_fullurl" },
+            { "fieldName": "metadata_storage_path" }
+          ]
+        }
+      }
+    ]
+  },
+  "vectorSearch": {
+    "algorithms": [
+      {
+        "name": "idx-discus-algorithm",
+        "kind": "hnsw",
+        "hnswParameters": { "metric": "cosine", "m": 4, "efConstruction": 400, "efSearch": 500 }
+      }
+    ],
+    "profiles": [
+      {
+        "name": "idx-discus-vector-profile",
+        "algorithm": "idx-discus-algorithm",
+        "vectorizer": "idx-discus-vectorizer"
+      }
+    ],
+    "vectorizers": [
+      {
+        "name": "idx-discus-vectorizer",
+        "kind": "azureOpenAI",
+        "azureOpenAIParameters": {
+          "resourceUri": "https://aif-companion-nprd.openai.azure.com",
+          "deploymentId": "text-embedding-3-large",
+          "modelName": "text-embedding-3-large"
+        }
+      }
+    ],
+    "compressions": []
+  }
+}

@@ -39,10 +39,13 @@ function Put-Resource {
     Write-Host "  OK" -ForegroundColor Green
 }
 
-# 1. Update the skillset (adds split-skill, fixes embedding input -> /document/pages/*)
+# 1. Update the index (idempotent; matches the live idx-discus schema)
+Put-Resource -Kind "indexes" -Name "idx-discus" -File "idx-discus.index.json"
+
+# 2. Update the skillset (adds split-skill, fixes embedding input -> /document/pages/*)
 Put-Resource -Kind "skillsets" -Name "skl-discus" -File "skl-discus.skillset.json"
 
-# 2. Update the indexer (outputFieldMappings cleared; chunk content carries OCR + image text)
+# 3. Update the indexer (outputFieldMappings cleared; chunk content carries OCR + image text)
 Put-Resource -Kind "indexers" -Name "idxr-discus" -File "idxr-discus.indexer.json"
 
 # 3. Reset + run so existing documents are re-enriched from scratch
