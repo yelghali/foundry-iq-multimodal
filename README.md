@@ -60,6 +60,170 @@ dotnet run --project src\FoundryIqMultimodal -- validate
 dotnet run --project src\FoundryIqMultimodal -- agent-query "Which project steering document mentions supplier risk and what image evidence supports it?"
 ```
 
+## Indexer And Skillset Code
+
+Implementation path: `src/FoundryIqMultimodal/Program.cs`
+
+The indexer is configured in `SearchConfigurator.BuildIndexer`. It enables normalized image generation for standalone images and embedded images inside supported documents, then maps OCR, GenAI image descriptions, merged text, and vectors into the index.
+
+```csharp
+private static object BuildIndexer(LabConfig config) => new
+{
+	name = config.SearchIndexerName,
+	dataSourceName = config.SearchDataSourceName,
+	targetIndexName = config.SearchIndexName,
+	skillsetName = config.SearchSkillsetName,
+	parameters = new
+	{
+		configuration = new
+		{
+			dataToExtract = "contentAndMetadata",
+			parsingMode = "default",
+			imageAction = "generateNormalizedImages",
+			indexedFileNameExtensions = ".pdf,.docx,.pptx,.png,.jpg,.jpeg"
+		}
+	},
+	fieldMappings = new[]
+	{
+		new { sourceFieldName = "metadata_storage_path", targetFieldName = "id", mappingFunction = new { name = "base64Encode" } }
+	},
+	outputFieldMappings = new object[]
+	{
+		new { sourceFieldName = "/document/merged_all", targetFieldName = "merged_content" },
+		new { sourceFieldName = "/document/normalized_images/*/text", targetFieldName = "ocrText" },
+		new { sourceFieldName = "/document/normalized_images/*/layoutText", targetFieldName = "ocrLayoutText" },
+		new { sourceFieldName = "/document/normalized_images/*/imageDescription", targetFieldName = "imageDescription" },
+		new { sourceFieldName = "/document/contentVector", targetFieldName = "contentVector" }
+	}
+};
+```
+
+The skillset is configured in `SearchConfigurator.BuildSkillset`. The skills used are `#Microsoft.Skills.Vision.OcrSkill`, `#Microsoft.Skills.Custom.ChatCompletionSkill`, two `#Microsoft.Skills.Text.MergeSkill` steps, and `#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill`. The excerpt below shows the OCR, GenAI Prompt, and embedding parts; the full method in `Program.cs` includes the merge steps that fold OCR and image descriptions into `/document/merged_all`.
+
+```csharp
+private static object BuildSkillset(LabConfig config) => new
+{
+	name = config.SearchSkillsetName,
+	description = "OCR + GenAI image verbalization skillset for enterprise multimodal files.",
+	cognitiveServices = Obj(
+		("@odata.type", "#Microsoft.Azure.Search.AIServicesByIdentity"),
+		("description", "Keyless AI Services billing resource for OCR"),
+		("subdomainUrl", config.AiServicesEndpoint.ToString().TrimEnd('/')),
+		("identity", null)),
+	skills = new object[]
+	{
+		Obj(
+			("@odata.type", "#Microsoft.Skills.Vision.OcrSkill"),
+			("name", "ocr-images"),
+			("context", "/document/normalized_images/*"),
+			("inputs", new[] { new { name = "image", source = "/document/normalized_images/*" } }),
+			("outputs", new[]
+			{
+				new { name = "text", targetName = "text" },
+				new { name = "layoutText", targetName = "layoutText" }
+			})),
+		Obj(
+			("@odata.type", "#Microsoft.Skills.Custom.ChatCompletionSkill"),
+			("name", "verbalize-images-with-llm"),
+			("context", "/document/normalized_images/*"),
+			("uri", $"{config.OpenAiEndpoint.ToString().TrimEnd('/')}/openai/deployments/{config.ChatDeploymentName}/chat/completions?api-version=2024-10-21"),
+			("inputs", new object[]
+			{
+				new { name = "image", source = "/document/normalized_images/*/data" },
+				new { name = "imageDetail", source = "='high'" },
+				new { name = "systemMessage", source = "='You verbalize enterprise document images for retrieval. Be factual and include visible text, chart labels, people names, owners, risks, policies, process steps, and org relationships. Do not invent facts.'" },
+				new { name = "userMessage", source = "='Describe this image for an enterprise search index. Include any visible words and why the image matters.'" }
+			}),
+			("outputs", new[] { new { name = "response", targetName = "imageDescription" } })),
+		Obj(
+			("@odata.type", "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill"),
+			("name", "embed-merged-content"),
+			("context", "/document"),
+			("resourceUri", config.OpenAiEndpoint.ToString().TrimEnd('/')),
+			("deploymentId", config.EmbeddingDeploymentName),
+			("modelName", "text-embedding-3-small"),
+			("dimensions", 1536),
+			("inputs", new[] { new { name = "text", source = "/document/merged_all" } }),
+			("outputs", new[] { new { name = "embedding", targetName = "contentVector" } }))
+	}
+};
+```
+
+## Client Query Code
+
+Implementation path: `src/FoundryIqMultimodal/Program.cs`
+
+The client query is implemented by `AgentQueryDemo.RunAsync`, `SearchValidator.HybridSemanticSearchAsync`, and `Embeddings.GetEmbeddingAsync`. The Microsoft Agent Framework agent exposes Azure AI Search as a tool, and the tool sends a single hybrid request with keyword text, vector search, and semantic reranking.
+
+```csharp
+static class AgentQueryDemo
+{
+	public static async Task RunAsync(LabConfig config, string question)
+	{
+		var searchTool = AIFunctionFactory.Create(async ([Description("The enterprise search question.")] string query) =>
+			await SearchValidator.HybridSemanticSearchAsync(config, query),
+			name: "search_enterprise_multimodal_index",
+			description: "Runs Azure AI Search hybrid vector and keyword search with semantic reranking over OCR and GenAI image descriptions.");
+
+		var azureOpenAiClient = new AzureOpenAIClient(config.OpenAiEndpoint, new DefaultAzureCredential());
+		ChatClient chatClient = azureOpenAiClient.GetChatClient(config.ChatDeploymentName);
+		AIAgent agent = chatClient.AsAIAgent(
+			instructions: "You answer from the enterprise multimodal search index only. Call the search tool first. Cite document names and separate OCR evidence from GenAI image-description evidence when present.",
+			name: "EnterpriseSearchAgent",
+			tools: [searchTool]);
+
+		var answer = await agent.RunAsync(question);
+		Console.WriteLine(answer);
+	}
+}
+```
+
+The hybrid search request combines `search = question` with `vectorQueries`, then asks Azure AI Search to use the semantic configuration for reranking, captions, and extractive answers.
+
+```csharp
+public static async Task<string> HybridSemanticSearchAsync(LabConfig config, string question)
+{
+	var vector = await Embeddings.GetEmbeddingAsync(config, question);
+	using var client = SearchHttpClient(config);
+	var body = new
+	{
+		search = question,
+		vectorQueries = new object[]
+		{
+			new { kind = "vector", vector, fields = "contentVector", k = 5 }
+		},
+		queryType = "semantic",
+		semanticConfiguration = "semantic-config",
+		captions = "extractive|highlight-true",
+		answers = "extractive|count-3",
+		select = "metadata_storage_name,merged_content,ocrText,imageDescription",
+		top = 5
+	};
+
+	return await PostSearchAsync(client, config, body);
+}
+```
+
+The query vector is created client-side with Azure OpenAI embeddings and Entra ID auth.
+
+```csharp
+public static async Task<float[]> GetEmbeddingAsync(LabConfig config, string text)
+{
+	using var client = new HttpClient { BaseAddress = config.OpenAiEndpoint };
+	var token = await new DefaultAzureCredential().GetTokenAsync(
+		new Azure.Core.TokenRequestContext(["https://cognitiveservices.azure.com/.default"]));
+	client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
+
+	var request = new { input = text, dimensions = 1536 };
+	var uri = $"/openai/deployments/{config.EmbeddingDeploymentName}/embeddings?api-version=2024-10-21";
+	var response = await client.PostAsync(uri, new StringContent(JsonSerializer.Serialize(request, Json.Options), Encoding.UTF8, "application/json"));
+	var json = await response.Content.ReadAsStringAsync();
+
+	using var doc = JsonDocument.Parse(json);
+	return doc.RootElement.GetProperty("data")[0].GetProperty("embedding").EnumerateArray().Select(x => x.GetSingle()).ToArray();
+}
+```
+
 ## What To Check If PNG Images Do Not Work
 
 1. Confirm the indexer JSON contains `"imageAction": "generateNormalizedImages"`.
